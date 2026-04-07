@@ -7,11 +7,13 @@ public class InMemoryDatabase
 {
     public readonly List<Doctor> Doctors = [];
     public readonly List<Patient> Patients = [];
-    public readonly List<ConsultBase> Consults = [];
+    public readonly List<ConsultBase> PendingConsults = [];
+    public readonly List<ConsultBase> HandledConsults = [];
 
     public InMemoryDatabase()
     {
         LoadDoctors();
+        LoadPatients();
     }
 
     private void LoadDoctors()
@@ -37,5 +39,21 @@ public class InMemoryDatabase
         Doctors.Add(fer);
         Doctors.Add(juan);   
         Doctors.Add(gaston);
+    }
+
+    private void LoadPatients()
+    {
+        var nico = new Patient()
+        {
+            Name = "Nico",
+        };
+
+        var alex = new Patient()
+        {
+            Name = "Alex",
+        };
+        
+        Patients.Add(nico);
+        Patients.Add(alex);
     }
 }

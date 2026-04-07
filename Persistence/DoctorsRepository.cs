@@ -2,10 +2,10 @@
 
 namespace Persistence;
 
-public class DoctorsRepository : RepositoryBase<Doctor>
+public class DoctorsRepository(InMemoryDatabase database)
 {
-    public DoctorsRepository()
+    public ICollection<Doctor> GetDoctors()
     {
-        
+        return database.Doctors;
     }
 }

@@ -8,5 +8,7 @@ public abstract class ConsultBase
 
     public DateTime DateTime { get; set; } = DateTime.Now;
 
-    public virtual decimal Cost => Doctor.Rate;
+    protected virtual decimal BaseCost => Doctor.Rate;
+
+    public decimal Cost => Patient.HasInsurance ? BaseCost * 0.85m : BaseCost;
 }

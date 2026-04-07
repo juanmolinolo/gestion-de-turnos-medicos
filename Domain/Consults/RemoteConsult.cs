@@ -4,5 +4,5 @@ public class RemoteConsult : ConsultBase
 {
     public required string Url { get; set; }
     
-    public override decimal Cost => Doctor.Rate * 0.8m;
+    protected override decimal BaseCost => Doctor.Rate * 0.8m;
 }
