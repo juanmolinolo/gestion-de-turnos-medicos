@@ -42,7 +42,7 @@ public class ConsultsService(ConsultsRepository consultsRepository)
         return consultsRepository.GetPendingConsults()
             .OfType<UrgentConsult>()
             .OrderBy(consult => consult.DateTime)
-            .FirstOrDefault(consult => consult.DateTime.Date == DateTime.Today);
+            .FirstOrDefault(consult => consult.DateTime.Date == DateTime.Today && consult.Priority == Priority.High);
     }
 
     private ConsultBase GetNextPendingConsult()
