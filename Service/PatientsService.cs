@@ -1,7 +1,7 @@
 ﻿using Domain;
 using Persistence;
 
-namespace BusinessLogic.Services;
+namespace Service;
 
 public class PatientsService(PatientsRepository patientsRepository)
 {

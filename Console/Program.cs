@@ -1,7 +1,7 @@
-﻿using BusinessLogic.Services;
-using Domain;
+﻿using Domain;
 using Domain.Consults;
 using Persistence;
+using Service;
 
 var database = new InMemoryDatabase();
 var doctorsService = new DoctorsService(new DoctorsRepository(database));

@@ -2,7 +2,7 @@
 using Domain.Consults;
 using Persistence;
 
-namespace BusinessLogic.Services;
+namespace Service;
 
 public class ConsultsService(ConsultsRepository consultsRepository)
 {

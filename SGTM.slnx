@@ -1,6 +1,6 @@
 <Solution>
-  <Project Path="BusinessLogic/BusinessLogic.csproj" />
   <Project Path="Console/Console.csproj" />
+  <Project Path="DataAccess/DataAccess.csproj" />
   <Project Path="Domain/Domain.csproj" />
-  <Project Path="Persistence/Persistence.csproj" />
+  <Project Path="Service/Service.csproj" />
 </Solution>

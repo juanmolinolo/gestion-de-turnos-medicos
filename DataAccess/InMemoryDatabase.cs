@@ -21,16 +21,18 @@ public class InMemoryDatabase
         var fer = new Doctor()
         {
             Name = "Fernando",
+            Specialty = Specialty.Cardiology,
             Rate = 15m
         };
 
-        var juan = new Doctor()
+        var juan = new Doctor
         {
             Name = "Juan",
+            Specialty = Specialty.Dermatology,
             Rate = 20m
         };
 
-        var gaston = new Doctor()
+        var gaston = new Doctor
         {
             Name = "Gaston",
             Rate = 35m
@@ -43,12 +45,12 @@ public class InMemoryDatabase
 
     private void LoadPatients()
     {
-        var nico = new Patient()
+        var nico = new Patient
         {
             Name = "Nico",
         };
 
-        var alex = new Patient()
+        var alex = new Patient
         {
             Name = "Alex",
         };
