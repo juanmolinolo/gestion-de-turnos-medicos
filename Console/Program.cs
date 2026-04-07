@@ -11,16 +11,17 @@ var consultsService = new ConsultsService(new ConsultsRepository(database));
 while (true)
 {
 	Console.Clear();
-	Console.WriteLine("=== Sistema de Gestion de Turnos Medicos ===");
+	Console.WriteLine("=== Sistema de Gestión de Turnos Médicos ===");
 	Console.WriteLine("1) Registrar turno");
-	Console.WriteLine("2) Listar turnos del dia");
-	Console.WriteLine("3) Listar turnos por medico");
-	Console.WriteLine("4) Atender proximo turno");
+	Console.WriteLine("2) Listar turnos del día");
+	Console.WriteLine("3) Listar turnos por médico");
+	Console.WriteLine("4) Atender próximo turno");
 	Console.WriteLine("5) Ver historial");
-	Console.WriteLine("6) Recaudacion del dia");
+	Console.WriteLine("6) Recaudación del día");
 	Console.WriteLine("0) Salir");
+	Console.WriteLine();
 
-	var option = ReadIntInRange("Seleccione una opcion: ", 0, 6);
+	var option = ReadIntInRange("Seleccione una opción: ", 0, 6);
 	Console.WriteLine();
 
 	try
@@ -53,6 +54,10 @@ while (true)
 	{
 		Console.WriteLine($"Error de negocio: {ex.Message}");
 	}
+	catch (OperationCanceledException)
+	{
+		Console.WriteLine("Acción cancelada. Volviendo al menú principal...");
+	}
 	catch (Exception ex)
 	{
 		Console.WriteLine($"Error inesperado: {ex.Message}");
@@ -64,11 +69,12 @@ while (true)
 static void RegisterConsult(DoctorsService doctorsService, PatientsService patientsService, ConsultsService consultsService)
 {
 	Console.WriteLine("== Registrar turno ==");
+	Console.WriteLine("(Ingrese X en cualquier ingreso para cancelar)");
 
-	var type = ReadIntInRange("Tipo (1: General, 2: Urgencia, 3: Telemedicina): ", 1, 3);
+	var type = ReadIntInRange("Tipo (1: General, 2: Urgencia, 3: Telemedicina): ", 1, 3, allowCancel: true);
 	var doctor = SelectDoctor(doctorsService.GetDoctors());
 	var patient = SelectOrCreatePatient(patientsService);
-	var consultDateTime = ReadDateTime("Fecha y hora (ej: 2026-04-07 14:30): ");
+	var consultDateTime = ReadDateTime("Fecha y hora (ej: 2026-04-07 14:30): ", allowCancel: true);
 
 	ConsultBase consult = type switch
 	{
@@ -90,9 +96,9 @@ static void RegisterConsult(DoctorsService doctorsService, PatientsService patie
 			Doctor = doctor,
 			Patient = patient,
 			DateTime = consultDateTime,
-			Url = ReadUrl("Link de videollamada: ")
+			Url = ReadUrl("Link de videollamada: ", allowCancel: true)
 		},
-		_ => throw new InvalidOperationException("Tipo de consulta invalido.")
+		_ => throw new InvalidOperationException("Tipo de consulta inválido.")
 	};
 
 	consultsService.AddPendingConsult(consult);
@@ -101,7 +107,7 @@ static void RegisterConsult(DoctorsService doctorsService, PatientsService patie
 
 static void ListTodayConsults(ConsultsService consultsService)
 {
-	Console.WriteLine("== Turnos del dia ==");
+	Console.WriteLine("== Turnos del día ==");
 	var consults = consultsService.GetPendingConsultsFromToday()
 		.OrderBy(consult => consult.DateTime)
 		.ToList();
@@ -111,7 +117,8 @@ static void ListTodayConsults(ConsultsService consultsService)
 
 static void ListConsultsByDoctor(DoctorsService doctorsService, ConsultsService consultsService)
 {
-	Console.WriteLine("== Turnos por medico ==");
+	Console.WriteLine("== Turnos por médico ==");
+	Console.WriteLine("(Ingrese X para cancelar)");
 	var doctor = SelectDoctor(doctorsService.GetDoctors());
 	var consults = consultsService.GetPendingConsultsByDoctor(doctor)
 		.OrderBy(consult => consult.DateTime)
@@ -122,9 +129,11 @@ static void ListConsultsByDoctor(DoctorsService doctorsService, ConsultsService 
 
 static void HandleNextConsult(ConsultsService consultsService)
 {
-	Console.WriteLine("== Atender proximo turno ==");
+	Console.WriteLine("== Atender próximo turno ==");
+	Console.WriteLine("(Ingrese X para cancelar)");
+	ReadRequiredText("Presione Enter para confirmar o X para cancelar: ", allowCancel: true, allowEmpty: true);
 	consultsService.HandleNextPendingConsult();
-	Console.WriteLine("Se atendio el proximo turno pendiente.");
+	Console.WriteLine("Se atendió el próximo turno pendiente.");
 }
 
 static void ShowHistory(ConsultsService consultsService)
@@ -139,7 +148,7 @@ static void ShowHistory(ConsultsService consultsService)
 
 static void ShowDailyRevenue(ConsultsService consultsService)
 {
-	Console.WriteLine("== Recaudacion del dia ==");
+	Console.WriteLine("== Recaudación del día ==");
 	var total = consultsService.GetTotalEarningsFromToday();
 	Console.WriteLine($"Total cobrado hoy: {total:0.00}");
 }
@@ -148,17 +157,17 @@ static Doctor SelectDoctor(List<Doctor> doctors)
 {
 	if (doctors.Count == 0)
 	{
-		throw new InvalidOperationException("No hay medicos cargados.");
+		throw new InvalidOperationException("No hay médicos cargados.");
 	}
 
-	Console.WriteLine("Medicos disponibles:");
+	Console.WriteLine("Médicos disponibles:");
 	for (var i = 0; i < doctors.Count; i++)
 	{
 		var doctor = doctors[i];
 		Console.WriteLine($"{i + 1}) {doctor.Name} - {doctor.Specialty} - Base: {doctor.Rate:0.00}");
 	}
 
-	var selectedIndex = ReadIntInRange("Seleccione medico: ", 1, doctors.Count) - 1;
+	var selectedIndex = ReadIntInRange("Seleccione médico: ", 1, doctors.Count, allowCancel: true) - 1;
 	return doctors[selectedIndex];
 }
 
@@ -177,14 +186,20 @@ static Patient SelectOrCreatePatient(PatientsService patientsService)
 			Console.WriteLine($"{i + 1}) {patient.Name} ({insuranceText})");
 		}
 		Console.WriteLine("N) Crear nuevo paciente");
+		Console.WriteLine("X) Cancelar");
 
-		Console.Write("Seleccione paciente o N: ");
+		Console.Write("Seleccione paciente, N o X: ");
 		var input = (Console.ReadLine() ?? string.Empty).Trim();
+
+		if (IsCancelInput(input))
+		{
+			throw new OperationCanceledException();
+		}
 
 		if (input.Equals("N", StringComparison.OrdinalIgnoreCase))
 		{
-			var name = ReadRequiredText("Nombre del paciente: ");
-			var hasInsurance = ReadYesNo("Tiene obra social? (S/N): ");
+			var name = ReadRequiredText("Nombre del paciente: ", allowCancel: true);
+			var hasInsurance = ReadYesNo("¿Tiene obra social? (S/N): ", allowCancel: true);
 			var newPatient = new Patient
 			{
 				Name = name,
@@ -200,7 +215,7 @@ static Patient SelectOrCreatePatient(PatientsService patientsService)
 			return patients[patientOption - 1];
 		}
 
-		Console.WriteLine("Entrada invalida. Intente nuevamente.");
+		Console.WriteLine("Entrada inválida. Intente nuevamente.");
 	}
 }
 
@@ -211,7 +226,7 @@ static Priority ReadPriority()
 	Console.WriteLine("2) Media");
 	Console.WriteLine("3) Baja");
 
-	var option = ReadIntInRange("Seleccione prioridad: ", 1, 3);
+	var option = ReadIntInRange("Seleccione prioridad: ", 1, 3, allowCancel: true);
 	return option switch
 	{
 		1 => Priority.High,
@@ -221,17 +236,17 @@ static Priority ReadPriority()
 	};
 }
 
-static string ReadUrl(string message)
+static string ReadUrl(string message, bool allowCancel = false)
 {
 	while (true)
 	{
-		var url = ReadRequiredText(message);
+		var url = ReadRequiredText(message, allowCancel: allowCancel);
 		if (Uri.TryCreate(url, UriKind.Absolute, out _))
 		{
 			return url;
 		}
 
-		Console.WriteLine("El link no es valido. Intente de nuevo (ej: https://meet.example.com/abc). ");
+		Console.WriteLine("El link no es válido. Intente de nuevo (ej: https://meet.example.com/abc).");
 	}
 }
 
@@ -258,7 +273,7 @@ static string FormatConsultLine(ConsultBase consult)
 		_ => "General"
 	};
 
-	return $"[{consult.DateTime:yyyy-MM-dd HH:mm}] {typeLabel} | Paciente: {consult.Patient.Name} | Medico: {consult.Doctor.Name} | Costo: {consult.Cost:0.00}";
+	return $"[{consult.DateTime:yyyy-MM-dd HH:mm}] {typeLabel} | Paciente: {consult.Patient.Name} | Médico: {consult.Doctor.Name} | Costo: {consult.Cost:0.00}";
 }
 
 static string MapPriority(Priority priority)
@@ -272,43 +287,63 @@ static string MapPriority(Priority priority)
 	};
 }
 
-static DateTime ReadDateTime(string message)
+static DateTime ReadDateTime(string message, bool allowCancel = false)
 {
 	while (true)
 	{
 		Console.Write(message);
 		var text = Console.ReadLine();
+
+		if (allowCancel && IsCancelInput(text))
+		{
+			throw new OperationCanceledException();
+		}
 
 		if (!string.IsNullOrWhiteSpace(text) && DateTime.TryParse(text, out var dateTime))
 		{
 			return dateTime;
 		}
 
-		Console.WriteLine("Fecha y hora invalida. Use un formato como 2026-04-07 14:30.");
+		Console.WriteLine("Fecha y hora inválida. Use un formato como 2026-04-07 14:30.");
 	}
 }
 
-static string ReadRequiredText(string message)
+static string ReadRequiredText(string message, bool allowCancel = false, bool allowEmpty = false)
 {
 	while (true)
 	{
 		Console.Write(message);
 		var text = Console.ReadLine();
+
+		if (allowCancel && IsCancelInput(text))
+		{
+			throw new OperationCanceledException();
+		}
+
+		if (allowEmpty && text is not null)
+		{
+			return text.Trim();
+		}
+
 		if (!string.IsNullOrWhiteSpace(text))
 		{
 			return text.Trim();
 		}
 
-		Console.WriteLine("El valor no puede estar vacio.");
+		Console.WriteLine("El valor no puede estar vacío.");
 	}
 }
 
-static bool ReadYesNo(string message)
+static bool ReadYesNo(string message, bool allowCancel = false)
 {
 	while (true)
 	{
 		Console.Write(message);
 		var text = (Console.ReadLine() ?? string.Empty).Trim();
+		if (allowCancel && IsCancelInput(text))
+		{
+			throw new OperationCanceledException();
+		}
 		if (text.Equals("S", StringComparison.OrdinalIgnoreCase) || text.Equals("SI", StringComparison.OrdinalIgnoreCase))
 		{
 			return true;
@@ -319,24 +354,34 @@ static bool ReadYesNo(string message)
 			return false;
 		}
 
-		Console.WriteLine("Ingrese S/Si o N/No.");
+		Console.WriteLine("Ingrese S/Sí o N/No.");
 	}
 }
 
-static int ReadIntInRange(string message, int min, int max)
+static int ReadIntInRange(string message, int min, int max, bool allowCancel = false)
 {
 	while (true)
 	{
 		Console.Write(message);
 		var text = Console.ReadLine();
 
+		if (allowCancel && IsCancelInput(text))
+		{
+			throw new OperationCanceledException();
+		}
+
 		if (int.TryParse(text, out var value) && value >= min && value <= max)
 		{
 			return value;
 		}
 
-		Console.WriteLine($"Ingrese un numero entre {min} y {max}.");
+		Console.WriteLine($"Ingrese un número entre {min} y {max}.");
 	}
+}
+
+static bool IsCancelInput(string? input)
+{
+	return string.Equals(input?.Trim(), "X", StringComparison.OrdinalIgnoreCase);
 }
 
 static void Pause()
